@@ -1,6 +1,10 @@
 from bs4 import BeautifulSoup
+from datetime import datetime
+import csv
 
-stats = open("data/horse_stats.html")
+date = datetime.today().strftime('%Y-%m-%d')
+
+stats = open("/storage/data/equibase/{}/LRL/horse_stats.html".format(date))
 soup = BeautifulSoup(stats.read())
 tables = soup.findAll("table")
 
@@ -23,3 +27,7 @@ for table in tables:
 result = [x for x in output_rows if x != []]
 
 print(result)
+
+with open('/storage/data/equibase/{}/LRL/stats.csv'.format(date), 'wb') as csvfile:
+    writer = csv.writer(csvfile)
+    writer.writerows(output_rows)
