@@ -1,10 +1,21 @@
 from bs4 import BeautifulSoup
 from datetime import datetime
 import csv
+import boto3
+from botocore.client import Config
+from io import StringIO
+
+session = boto3.Session(region_name = 'us-east-1', profile_name='minio')
+s3 = session.resource('s3',
+                    endpoint_url='http://192.168.1.131:9000',
+                    config=Config(signature_version='s3v4'),
+                    region_name='us-east-1')
 
 date = datetime.today().strftime('%Y-%m-%d')
 
-stats = open("/storage/data/equibase/{}/LRL/horse_stats.html".format(date))
+obj = s3.Object("equibase", "/{}/stats/horses/LRL/horse_stats.html".format(date))
+stats = obj.get()['Body']
+
 soup = BeautifulSoup(stats.read())
 tables = soup.findAll("table")
 
@@ -28,6 +39,9 @@ result = [x for x in output_rows if x != []]
 
 print(result)
 
-with open('/storage/data/equibase/{}/LRL/stats.csv'.format(date), 'wb') as csvfile:
-    writer = csv.writer(csvfile)
-    writer.writerows(output_rows)
+csv_buffer = StringIO()
+
+writer = csv.writer(csv_buffer)
+writer.writerows(output_rows)
+
+s3.Object('equibase', '{}/stats/horses/LRL/stats.csv'.format(date)).put(Body=csv_buffer.getvalue())
